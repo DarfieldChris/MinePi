@@ -1,0 +1,90 @@
+#
+# config.yml - configuration file for python script mqtt.py
+#
+
+#
+# log_level ... can be one of DEBUG, INFO, WARNING, ERROR, NONE
+#
+log_level: INFO
+
+Mqtt:
+    Server: localhost
+    Port: 1883
+    Identity: pi
+    Topic: Minecraft
+
+Pins:
+    7:
+        type: SERVO
+        continuous: false
+    8:
+        type: SERVO
+        continuous: true
+    23:
+        type: IN
+        pull_up_down: PUD_DOWN
+        trigger: 98
+    24:
+        type: IN
+        pull_up_down: PUD_UP
+    25:
+        type: OUT
+    40:
+        type: cameraPanPositive
+        servo: 8
+        trigger: 98
+    41:
+        type: cameraPanNegative
+        servo: 8
+        trigger: 98
+    42:
+        type: cameraPanPositive
+        servo: 7
+        trigger: 98
+    43:
+        type: cameraPanNegative
+        servo: 7
+        trigger: 98
+    97:
+        type: camera
+        camera: kid_phone
+        camera_dest: minecraft_server2
+    98:
+        type: camera
+        camera: usb
+        camera_dest: minecraft_server
+    99:
+        type: camera_ssh
+        camera: dad_phone
+        camera_dest: minecraft_server
+        
+cameras:
+    dad_phone:
+        uri: http://192.168.1.239:1234/shot.jpg
+        no_pic_available: ./images/nopic.jpg
+    kid_phone:
+        uri: http://192.168.1.205:1234/shot.jpg
+        no_pic_available: ./images/nopic.jpg
+    usb:
+        cmd: /usr/bin/fswebcam --jpeg -o -
+        no_pic_available: ./images/nopic.jpg
+    dummy:
+        uri: http://192.168.1.253:1234/shot.jpg
+        no_pic_available: ./images/nopic.jpg
+
+ssh_destinations:
+    minecraft_server:
+        server: 192.168.1.240
+        user: chris
+        passwd: ne1609
+        path: /Users/chris/Desktop/Development/RLRS/plugins/ImageMaps/images/shot.jpg
+    minecraft_server2:
+        server: 192.168.1.240
+        user: chris
+        passwd: ne1609
+        path: /Users/chris/Desktop/Development/RLRS/plugins/ImageMaps/images/monitor.jpg
+    netadmin:
+        server: 192.168.1.201
+        user: netadmin
+        passwd: josie
+        path: /Users/netadmin/Development/bukkit/RLRS/plugins/ImageMaps/images/shot.jpg
