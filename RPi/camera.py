@@ -44,9 +44,9 @@ class MyCamera:
 
         if (self.cfg["uri"] == "PICAMERA"):
             self.logger.info ("Using connected Pi camera module ...")
-            if (self._cam == None):
-                self._cam = picamera.PiCamera()
-                self._cam.start_preview()
+            #if (self._cam == None):
+            #    self._cam = picamera.PiCamera()
+            #    self._cam.start_preview()
         elif (self.cfg["uri"] != None):
             self.logger.info ("Using web camera at URI: %s ...",
                               self.cfg["uri"])
@@ -57,8 +57,12 @@ class MyCamera:
 
     def _takePiCameraPicture (self):
         self.logger.debug("started")
+        self._cam = picamera.PiCamera()
+        self._cam.start_preview()
+        time.sleep(2)
         f = io.BytesIO()
         self._cam.capture(f, 'jpeg')
+        self._cam.stop_preview()
         self.logger.debug("finished")
         return bytearray(f.getvalue())
 
