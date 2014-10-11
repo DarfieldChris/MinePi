@@ -35,6 +35,7 @@ class gpio:
                cfg  - pointer to config.YAMLConfig class instance
         """
 
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.mqtt_client = mqtt_client
         
         self.cfg = cfg
@@ -43,23 +44,21 @@ class gpio:
         #    set up GPIO using BCM numbering
         GPIO.setmode(GPIO.BCM)
 
-        self.motors = {}
-
-        for pin in cfg.get("Pins"):
-            if (cfg.get("Pins", pin, "type") == "IN"):
+        for pin in cfg["Pins"]:
+            if (cfg["Pins"][pin]["type"] == "IN"):
                 GPIO.setup(pin, GPIO.IN, 
-                           pull_up_down = getattr(GPIO, cfg.get("Pins",pin,"pull_up_down")))
+                           pull_up_down = getattr(GPIO, cfg["Pins"][pin]["pull_up_down"]))
                 GPIO.add_event_detect(pin, GPIO.BOTH, callback=self.inputStateChange, 
                                       bouncetime=100)
-            elif (cfg.get("Pins", pin, "type") == "OUT"):
+            elif (cfg["Pins"][pin]["type"] == "OUT"):
                 GPIO.setup(pin, GPIO.OUT)
 	        GPIO.output(pin, True)
                 time.sleep(1)
                 GPIO.output(pin,False)
-            elif (cfg.get("Pins",pin,"type") == "SERVO"):
-                self.motors[pin] = servo.servo(pin, cfg.getBoolean("Pins",pin,"continuous"))
+            elif (cfg["Pins"][pin]["type"] == "SERVO"):
+                cfg["Pins"][pin]["__SERVO"] = servo.servo(pin, cfg.getBoolean("Pins."+str(pin)+".continuous"))
 
-            logging.info("Setting up pin %d as %s", pin, cfg.get("Pins", pin, "type"))
+            self.logger.info("Setting up pin %d as %s", pin, cfg["Pins"][pin]["type"])
         
     def inputStateChange(self, channel):
         """Called when state change detected on GPIO input pin.
@@ -73,14 +72,14 @@ class gpio:
         # send out an MQTT message about the state change
         self.publish(channel, str(GPIO.input(channel)))
             
-        logging.info("Button state changed ... pin %d reading %s", channel,str(GPIO.input(channel)))
+        self.logger.info("Button state changed ... pin %d reading %s", channel,str(GPIO.input(channel)))
 
         # check to see if there are any triggers 
-        trigger = self.cfg.get("Pins",channel,"trigger", default = None)
+        trigger = self.cfg.get("Pins."+str(channel)+".trigger", default = None)
         if (trigger):
-            logging.debug("inputStateChange: Processing trigger %s", trigger)
+            self.logger.debug("Processing trigger %s", trigger)
             self.triggerOutputs(int(trigger), GPIO.input(channel))
-            logging.debug("inputStateChange: Processed trigger")
+            self.logger.debug("Processed trigger")
 
         #GPIO.add_event_detect(channel, GPIO.BOTH, callback=self.inputStateChange, bouncetime=100)
 
@@ -96,58 +95,59 @@ class gpio:
         self.triggerOutputs(pin, iPayLoad)
 
         # check to see if there are any triggers on this pin
-        trigger = self.cfg.get("Pins",pin,"trigger", default = None)
+        trigger = self.cfg.get("Pins."+str(pin)+".trigger", default = None)
         if (trigger):
-            logging.debug("on_message: Processing trigger %s", trigger)
+            self.logger.debug("Processing trigger %s", trigger)
             self.triggerOutputs(int(trigger), iPayLoad)
-            logging.debug("on_message: Processed trigger")
+            self.logger.debug("Processed trigger")
 
     def triggerOutputs(self, pin, high_low):
-            if (self.cfg.get("Pins", pin, "type") == "OUT"):
-                logging.info("setting pin %d to %d", pin, high_low)
+            if (self.cfg["Pins"][pin]["type"] == "OUT"):
+                self.logger.info("setting pin %d to %d", pin, high_low)
                 GPIO.output(pin, state)
-            elif (self.cfg.get("Pins", pin, "type") == "camera_ssh" and high_low):
+            elif (self.cfg["Pins"][pin]["type"] == "camera_ssh" and high_low):
                 self.__take_pic(pin, ssh=True)
  
-            elif (self.cfg.get("Pins", pin, "type") == "camera" and  high_low):
-                #logging.debug("YES")
+            elif (self.cfg["Pins"][pin]["type"] == "camera" and  high_low):
                 self.__take_pic(pin)
-                #logging.debug("NO")
           
-            elif (self.cfg.get("Pins",pin,"type") == "cameraPanPositive" and high_low):
-                servo_pin = int(self.cfg.get("Pins",pin,"servo"))
-                self.motors[servo_pin].move(0.0001)
-            elif (self.cfg.get("Pins",pin,"type") == "cameraPanNegative" and high_low):
-                servo_pin = int(self.cfg.get("Pins",pin,"servo"))
-                self.motors[servo_pin].move(-0.0001)
-            #logging.debug("NO2")
-
-
+            elif (self.cfg["Pins"][pin]["type"] == "cameraPanPositive" and high_low):
+                servo_pin = int(self.cfg["Pins"][pin]["servo"])
+                (self.cfg["Pins"][servo_pin]["__SERVO"]).move(0.0001)
+                
+            elif (self.cfg["Pins"][pin]["type"] == "cameraPanNegative" and high_low):
+                servo_pin = int(self.cfg["Pins"][pin]["servo"])
+                (self.cfg["Pins"][servo_pin]["__SERVO"]).move(-0.0001)
 
     def __take_pic(self, pin, ssh = False):
-        logging.info("Taking picture ...")
-        cam = camera.Camera (self.cfg, self.cfg.get("Pins", pin, "camera"))
+        self.logger.info("Taking picture ...")
+        cam = self.cfg.get("Pins."+str(pin)+"__CAM", None)
+
+        if ( cam == None):
+            self.logger.info("Initializing camera on pin %d", pin)
+            cam = camera.MyCamera (self.cfg, self.cfg.get("Pins."+str(pin)+".camera"))
+            self.logger.info("Initialized camera on pin %d", pin)
+            self.cfg["Pins"][pin]["__CAM"] = cam
+
         cam.takePicture()
 
 
         # send a message back indicating a picture has been taken ...
         if (ssh):
-            logging.info("... and returning image via HTTP")
-            cam.forwardSSHServer(self.cfg.get("Pins",pin,"camera_dest"))
+            self.logger.info("... and returning image via HTTP")
+            strRemotePath = cam.forwardSSHServer(self.cfg["Pins"][pin]["camera_dest"])
 
-            img = cam.strRemotePath
-            img = os.path.basename(img)
+            img = os.path.basename(strRemotePath)
             self.publish( pin, img)
         else: 
-            #byteArray = cam.getString()
             byteArray = cam.getByteArray()
-            logging.info("... and returning binary image message - %d.", len(byteArray))
+            self.logger.info("... and returning binary image message - %d.", len(byteArray))
             self.publish(pin, byteArray)
 
     def publish(self,pin,message):
         if (self.mqtt_client != None):
-            logging.info("gpio  publication: %d", pin)
-            self.mqtt_client.mos.publish( self.mqtt_client.topicheader + '/input/pin' + str(pin),
+            self.logger.info("gpio  publication: %d", pin)
+            self.mqtt_client.mos.publish( self.cfg["Mqtt.Topic"] + '/input/pin' + str(pin),
                                           message, 0 )
 
     def __del__(self):
@@ -157,11 +157,8 @@ class gpio:
 # MAIN CODE - THIS IS WHAT IS RUN IF YOU TYPE 'python pfmqtt.py' in a shell
 #
 if __name__ == '__main__':
-    # set default logging level prior to parsing config info
-    logging.basicConfig(level=logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
-
     # read config file
-    cfg = config.YAMLConfig()
+    cfg = config.config()
     cfg.setLogging()
 
     io = gpio(cfg)

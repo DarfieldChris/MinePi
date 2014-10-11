@@ -5,7 +5,6 @@
 #
 # log_level ... can be one of DEBUG, INFO, WARNING, ERROR, NONE
 #
-log_level: INFO
 
 Mqtt:
     Server: localhost
@@ -61,16 +60,16 @@ Pins:
 cameras:
     dad_phone:
         uri: http://192.168.1.239:1234/shot.jpg
-        no_pic_available: ./images/nopic.jpg
+        no_pic: ./images/nopic.jpg
     kid_phone:
         uri: http://192.168.1.205:1234/shot.jpg
-        no_pic_available: ./images/nopic.jpg
+        no_pic: ./images/nopic.jpg
     usb:
         cmd: /usr/bin/fswebcam --jpeg -o -
-        no_pic_available: ./images/nopic.jpg
+        no_pic: ./images/nopic.jpg
     dummy:
         uri: http://192.168.1.253:1234/shot.jpg
-        no_pic_available: ./images/nopic.jpg
+        no_pic: ./images/nopic.jpg
 
 ssh_destinations:
     minecraft_server:
@@ -88,3 +87,17 @@ ssh_destinations:
         user: netadmin
         passwd: josie
         path: /Users/netadmin/Development/bukkit/RLRS/plugins/ImageMaps/images/shot.jpg
+
+
+#
+# LOGGING CONFIGURATION
+#
+# use with: logging.config.dictConfig(yaml.load(open('logging.yaml', 'r')))
+ 
+# Formatters detailed here: 
+#   http://docs.python.org/2/library/logging.html#logrecord-attributes
+
+logging:
+    root:
+      level: DEBUG
+

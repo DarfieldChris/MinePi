@@ -33,30 +33,31 @@ class mqtt:
     
            Arguments:
                self - object being created
-               cfg  - pointer to config.YAMLConfig class instance
+               cfg  - pointer to config.config class instance
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
 
         self.cfg = cfg
 
         # Figure out the details of the MQTT Server to talk to
-        self.uri = cfg.get("Mqtt", "Server", default = "localhost") 
-        self.port = cfg.get("Mqtt", "Port", default = "1883")
-        self.ident = cfg.get("Mqtt", "Identity", default = "xxx")
+        cfg.setdefault("Mqtt.Server", default = "localhost") 
+        cfg.setdefault("Mqtt.Port", default = "1883")
+        cfg.setdefault("Mqtt.Identity", default = "xxx")
         #self.topicheader = topicheader+ '/' + self.ident
-        self.topicheader = cfg.get("Mqtt", "Topic", default = "xxx")
+        cfg.setdefault("Mqtt.Topic", default = "xxx")
 
-        self.outputRegex = re.compile(self.topicheader + "/output/(\d*)", re.IGNORECASE)
+        self.outputRegex = re.compile(cfg["Mqtt.Topic"] + "/output/(\d*)", re.IGNORECASE)
 
-	logging.info("Listening for MQQT messages:  %s/output/(\d*)", self.topicheader)
+	self.logger.info("Listening for MQQT messages:  %s/output/(\d*)", cfg["Mqtt.Topic"])
         
         # setup as MQQT client
-        self.mos = paho.Client(self.ident)
+        self.mos = paho.Client(cfg["Mqtt.Identity"])
         self.mos.on_connect = self.on_connect
         self.mos.on_disconnect = self.on_disconnect
         self.mos.on_message = self.on_message # register for callback
 
         while (self.connect() == False ):
-            logging.info ("Trying to connect again ...")
+            self.logger.info ("Trying to connect again ...")
             time.sleep(5)
         
     #
@@ -72,13 +73,14 @@ class mqtt:
             if (reconnect):
                 self.mos.reconnect()
             else:
-                self.mos.connect(self.uri, port=self.port)
+                self.mos.connect(self.cfg["Mqtt.Server"], self.cfg["Mqtt.Port"])
         except:
             e = sys.exc_info()[0]
-            logging.warning("Connection Failed with error: %s", str(e))
+            self.logger.warning("Connection Failed with error: %s", str(e))
             #raise
             return False
-        logging.info("connected to mqtt server at %s:%d", self.uri, self.port)
+        self.logger.info("connected to mqtt server at %s:%d",
+                         self.cfg["Mqtt.Server"], self.cfg["Mqtt.Port"])
         return True
     
     #
@@ -91,28 +93,30 @@ class mqtt:
     #    self - pointer to self
     #
     def run(self):
-        while self.mos.loop(10000) == 0:
-            logging.info("mqtt.run: Woke up ...")
+        #while self.mos.loop(10000) == 0:
+        while (True):
+            self.mos.loop(0) == 0
+            #self.logger.debug("Woke up ...")
             #self.triggerOutputs(98, True)
 
     # The callback for when the client receives a CONNACK response
     # from the server.
     def on_connect(self, client, userdata, flags, rc):
-        logging.info("Connected with result code: %s", str(rc))
+        self.logger.info("Connected with result code: %s", str(rc))
 
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
-        self.mos.subscribe(self.topicheader + "/output/+", 0) # get all messages for me
+        self.mos.subscribe(self.cfg["Mqtt.Topic"] + "/output/+", 0) # get all messages for me
         #self.mos.subscribe("#", 0) # get all messages
-        logging.info("subscribed to %s/output/+", self.topicheader)
+        self.logger.info("subscribed to %s/output/+", self.cfg["Mqtt.Topic"])
 
     def on_disconnect(self, userdata, flags, rc):
         if (rc):    # unexpected disconnection ... try to reconnect
-            logging.warning("Disconnected with result code: %s", str(rc))
+            self.logger.warning("Disconnected with result code: %s", str(rc))
 
-            logging.info("Trying to reconnect ...")
+            self.logger.info("Trying to reconnect ...")
             while (self.connect(True) == False ):
-                logging.info ("Failed to reconnect.  Will sleep and try again ...")
+                self.logger.info ("Failed to reconnect.  Will sleep and try again ...")
                 time.sleep(5)
  
     #
@@ -126,7 +130,7 @@ class mqtt:
     #    msg - ???
     #
     def on_message(self, xxx,  obj, msg):
-        logging.info("Msg received: %s - %s", msg.topic, msg.payload)
+        self.logger.info("Msg received: %s - %s", msg.topic, msg.payload)
         
         rm = self.outputRegex.match( msg.topic )
         
@@ -135,7 +139,7 @@ class mqtt:
                 self.on_message_obj.trigger (rm.group(1), msg.payload)
                 
 
-        logging.debug("on_message: Finished")
+        self.logger.debug("Finished")
 
 
     def __del__(self):
@@ -145,11 +149,8 @@ class mqtt:
 # MAIN CODE - THIS IS WHAT IS RUN IF YOU TYPE 'python pfmqtt.py' in a shell
 #
 if __name__ == '__main__':
-    # set default logging level prior to parsing config info
-    logging.basicConfig(level=logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
-
     # read config file
-    cfg = config.YAMLConfig()
+    cfg = config.config()
     cfg.setLogging()
 
     conn = mqtt(cfg)

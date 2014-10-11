@@ -29,6 +29,8 @@ import config
 class servo:
 
     def __init__(self, pin, cont = False):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
         self.pos=.0015
         self.pin = pin
         self.cont = cont
@@ -45,7 +47,7 @@ class servo:
             time.sleep(high)
             GPIO.output(self.pin,0)
             time.sleep(low)
-        logging.debug("__move: %f", high);  
+        self.logger.debug("%f", high);  
 
     def __move2 (self, steps = .0001, min = .001, max = .002):
 
@@ -74,11 +76,9 @@ class servo:
             self.__move2(steps, min, max)
 
 if __name__=='__main__':
-    # set default logging level prior to parsing config info
-    logging.basicConfig(level=logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
 
     # read config file and set logging level based on value in config file
-    cfg = config.YAMLConfig()
+    cfg = config.config()
     cfg.setLogging()
 
     GPIO.setmode(GPIO.BCM)

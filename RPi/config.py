@@ -1,4 +1,7 @@
-"""Module for reading/writing the contents of a configuration file
+"""Module for dealing with program configuration data.
+   Config data can come from two places:
+   - The command line
+   - a YAML configuration file
 
 This module provides a consistent means of accessing/saving configuration settings.
 
@@ -17,93 +20,71 @@ import logging
 import yaml
 
 #Local Application/Library Specific Imports
-# --- DO NOT HAVE ANY ---
+from NestedDict import NestedDict
 
-class YAMLConfig:
-    """Class to deal with YAML configuration files"""
+class config(NestedDict):
+    """Class to deal with program configuration settings
 
-    def __init__(self):
+       Configuration setting are taken from two locations:
+       - the command line
+       - a YAML configuration file
+
+       By default the config file used is ./config.yml.
+       The default can be overridden on the command line using -f.
+       """
+
+    def __init__(self, *args):
         """create an instance of this class
-
-              By default the config file used is ./config.yml.
-              The default can be overridden on the command line using -f.
         """
+        NestedDict.__init__(self)
+        
+        self.logger = logging.getLogger(self.__class__.__name__)
 
         parser = argparse.ArgumentParser ()
         parser.add_argument('-f', action='store', dest='file',
-                        default='./config.yml',
-                        help='Load config file ... ./config.yml used by default',
-                        )
+                            default='./config.yml',
+                            help='Load config file ... ./config.yml used by default')
         results = parser.parse_args()
 
         f = open(results.file)
-        self.data = yaml.safe_load(f)     # use safe_load instead of load
+        data = yaml.safe_load(f)     # use safe_load instead of load
         f.close()
-        logging.info ("Using config file %s", file)
- 
-    def getBoolean(self, list, obj = None, key = None, default = False):
-        s = self.get(list,obj,key,default)
 
-        if s is True or s is False:
-            return s
+        logging.info ("Using config file %s", results.file)
 
-        s = str(s).strip().lower()
+        # copy dict values from YAML file over to nested dictionary
+        self.copy_recursive(data, self)
 
-        res = not s in ['false','f','n','0','']
-
-        logging.debug("Boolean value is: %d", res)
-
-        return res
-
-    def get(self, list, obj = None, key = None, default = "default"):
-        """Get the value for the specified key and return it as a string.
-
-           The key can take one of three forms:
-               list.obj.key = ???
-               list.obj = ???
-               list = ???
-
-           Parameters:
-               list (String)    - first part of the key (eg 'a' in a.b.c)
-               obj  (String)    - second part of key ... if not specified key is only 'list'
-               key  (String)    - third part of key ... if not specified key is only 'list.oj'
-               default (String) - default value to return if specified key does not exist
-        """
-
-        val = default
-
-        try:
-            if obj == None:
-                val = self.data[list]
-                logging.debug("get: %s = %s",list,val)
-            elif key == None:
-                val = self.data[list][obj]
-                logging.debug("get: %s.%s = %s",list,obj,val)
-            else:
-                val = self.data[list][obj][key]
-                logging.debug("get: %s.%s.%s = %s",list,obj,key,val)
-        except:
-            logging.warning ("get: - Failed to get %s.%s.%s ... using default value '%s'",
-                              list, obj, key, default)
-            val = default
-
-        return val
 
     def dump (self):
-        """Return the config file data as a readable string."""
+        """Return the config data as a readable string."""
 
-        return yaml.dump(self.data)
+        return yaml.dump(self)
 
     def setLogging (self):
         """Set final logging level based on contents of config file"""
 
-        logging.getLogger().setLevel(getattr(logging, self.get("log_level", default = "DEBUG")))
-        logging.debug("Config File contents => %s", self.dump())
+        logging.basicConfig(
+            format='%(levelname) -10s %(asctime)s %(module)s:%(funcName)s[%(lineno)s] %(message)s')
+
+        logging.getLogger().setLevel(getattr(logging, self.get("logging.root.level", "INFO").upper()))
+
+        self.logger.debug("Config File contents => %s", self.dump())
 
 if __name__ == '__main__':
 
-    logging.basicConfig(level=logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(format='%(levelname) -10s %(asctime)s %(module)s:%(funcName)s[%(lineno)s] %(message)s',
+                            level="DEBUG")
 
-    cfg = YAMLConfig()
+    cfg = config()
+    cfg.setLogging()
+    
+    logging.info("Config file contents: %s", cfg.dump())
+
+    cfg["XXX"] = "test1"
+    cfg["YYY.test2"] = "a"
+    cfg["QQQ.test3.a"] = "b"
+    cfg["RRR.test3"] = "b"
+    cfg["RRR.test4.a"] = "c"
 
     logging.info("Config file contents: %s", cfg.dump())
