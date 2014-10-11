@@ -9,10 +9,12 @@ import os
 import subprocess
 
 # Third Party Imports
-from SimpleCV.ImageClass import Image
-from SimpleCV import Camera
 import urllib
 import paramiko
+import picamera
+if 0: # SimpleCV is HUGE ... ONLY IMPORT IF REQUIRED
+   from SimpleCV.ImageClass import Image
+   from SimpleCV import Camera
 
 # Local Application/Library Specific Imports
 import config
@@ -39,25 +41,37 @@ class MyCamera:
         self.cfg.setdefault("local_path", "./images/shot.jpg")
         self.cfg.setdefault("no_pic", "./images/xxx.jpg")
         self.cfg.setdefault("uri", None)
-        
-        if (self.cfg["uri"] != None):
-            self.logger.info ("Using web camera at URI: %s",
+
+        if (self.cfg["uri"] == "PICAMERA"):
+            self.logger.info ("Using connected Pi camera module ...")
+            if (self._cam == None):
+                self._cam = picamera.PiCamera()
+                self._cam.start_preview()
+        elif (self.cfg["uri"] != None):
+            self.logger.info ("Using web camera at URI: %s ...",
                               self.cfg["uri"])
         else:
-            self.logger.info ("Using local (USB?) camera")
+            self.logger.info ("Attempting to use local (USB?) camera ...")
             if ( self._cam == None):
                 self._cam = Camera()
 
+    def _takePiCameraPicture (self):
+        self.logger.debug("started")
+        f = io.BytesIO()
+        self._cam.capture(f, 'jpeg')
+        self.logger.debug("finished")
+        return bytearray(f.getvalue())
+
 
     def _takeUSBCameraPicture (self):
-        self.logger.debug("USB: started")
+        self.logger.debug("started")
         self._img = self._cam.getImage()
 
-        self.logger.debug("USB: captured image")
+        self.logger.debug("captured image")
         f = io.BytesIO()
-        self.logger.debug("USB: XXX")
+        self.logger.debug("XXX")
         self._img.getPIL().save(f,"JPEG")
-        self.logger.debug("USB: got byte array")
+        self.logger.debug("got byte array")
         return bytearray(f.getvalue())
 
     def _takeWebCameraPicture (self):
@@ -72,6 +86,8 @@ class MyCamera:
         try:
             if (self.cfg["uri"] == None):
                 self.bytes = self._takeUSBCameraPicture()
+            elif (self.cfg["uri"] == "PICAMERA"):
+                self.bytes = self._takePiCameraPicture()
             else:
                 self.bytes = self._takeWebCameraPicture()
         except:
@@ -139,10 +155,10 @@ if __name__ == '__main__':
     cfg = config.config()
     cfg.setLogging()
 
-    #obj = Camera (cfg, "dad_phone")
-    #obj.takePicture()
-    #obj.forwardSSHServer("minecraft_server")
-
-    obj = MyCamera (cfg, "usb")
+    obj = MyCamera (cfg, "pi")
     obj.takePicture()
     obj.forwardSSHServer("minecraft_server")
+
+    #obj = MyCamera (cfg, "usb")
+    #obj.takePicture()
+    #obj.forwardSSHServer("minecraft_server")
