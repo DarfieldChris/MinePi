@@ -2,9 +2,6 @@
 # config.yml - configuration file for python script mqtt.py
 #
 
-#
-# log_level ... can be one of DEBUG, INFO, WARNING, ERROR, NONE
-#
 
 Mqtt:
     Server: localhost
@@ -93,11 +90,14 @@ ssh_destinations:
 # LOGGING CONFIGURATION
 #
 # use with: logging.config.dictConfig(yaml.load(open('logging.yaml', 'r')))
+#
+# log_level ... can be one of DEBUG, INFO, WARNING, ERROR, NONE
+#
  
 # Formatters detailed here: 
 #   http://docs.python.org/2/library/logging.html#logrecord-attributes
 
 logging:
     root:
-      level: DEBUG
+      level: INFO
 
