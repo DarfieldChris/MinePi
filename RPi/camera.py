@@ -59,8 +59,10 @@ class MyCamera:
     def _takePiCameraPicture (self):
         self.logger.debug("started")
         #self._cam = picamera.PiCamera()
-        time.sleep(2)
+        #time.sleep(2)
+        #self.logger.debug("slept for 2 seconds")
         f = io.BytesIO()
+        self.logger.debug("about to capture ...")
         self._cam.capture(f, 'jpeg')
         self.logger.debug("finished")
         return bytearray(f.getvalue())

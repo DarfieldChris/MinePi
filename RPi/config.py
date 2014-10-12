@@ -38,6 +38,8 @@ class config(NestedDict):
         """
         NestedDict.__init__(self)
         
+        logging.basicConfig(
+            format='%(levelname) -10s %(asctime)s %(module)s:%(funcName)s[%(lineno)s] %(message)s')
         self.logger = logging.getLogger(self.__class__.__name__)
 
         parser = argparse.ArgumentParser ()

@@ -121,7 +121,7 @@ class gpio:
 
     def __take_pic(self, pin, ssh = False):
         self.logger.info("Taking picture ...")
-        cam = self.cfg.get("Pins."+str(pin)+"__CAM", None)
+        cam = self.cfg.get("Pins."+str(pin)+".__CAM", None)
 
         if ( cam == None):
             self.logger.info("Initializing camera on pin %d", pin)
