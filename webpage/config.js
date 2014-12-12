@@ -1,0 +1,9 @@
+host = '192.168.1.171';	// hostname or IP address
+port = 7681;
+topic = '#';		// topic to subscribe to
+useTLS = false;
+username = null;
+password = null;
+// username = "jjolie";
+// password = "aa";
+cleansession = true;
