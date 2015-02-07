@@ -37,6 +37,8 @@ class mqtt:
         """
         self.logger = logging.getLogger(self.__class__.__name__)
 
+        self.current_time = time.time()
+
         self.cfg = cfg
 
         # Figure out the details of the MQTT Server to talk to
@@ -96,6 +98,7 @@ class mqtt:
         #while self.mos.loop(10000) == 0:
         while (True):
             self.mos.loop(0) == 0
+            ct = 
             #self.logger.debug("Woke up ...")
             #self.triggerOutputs(98, True)
 

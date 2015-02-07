@@ -1,7 +1,18 @@
 MinePi
 ======
 
-Integration of Minecraft with real world events using GPIO on a Raspberry Pi, Python and MQTT
+An internet of things project using:
+- a raspberry pi running python scripts and a mosquitton MQTT server
+- an arduino phone used as a camera mounted in a servo-controlled pan/tilt mechanism
+- a Minecraft server plugin that acts as an MQTT client that talks to the MQTT client on the RPi
+- a webpage (uses websockets) that also acts as an MQTT client that talks to the MQTT client on the RPi
+
+Integration of Minecraft (or a web page) with real world events using GPIO on a Raspberry Pi, Python and MQTT
+
+The basic idea is that the pan/tilt camera can be viewed and controlled from either a webpage or from Minecraft.
+
+This all works but the code is very rough ...
+I still need to include the Minecraft Server code here.
 
 3D Printed Pan/Tilt Arm
 =======================

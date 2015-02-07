@@ -1,5 +1,7 @@
 // NOTE: THIS FILE COPIED FROM http://www.thingiverse.com/thing:302741
 // Not sure if there are any copyright issues with re-using it ...
+// I have included it just so that the project has a complete file set ...
+// THIS IS NOT MY WORK!!!
 
 /*---------------------------------------------------------\
 |     From: Ekobots Innovation Ltda - www.ekobots.com      |
